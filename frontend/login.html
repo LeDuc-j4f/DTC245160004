@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HRM - Đăng nhập</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-body">
+<div class="login-card">
+    <h1 class="brand">HRM</h1>
+    <p class="muted">Hệ thống Quản lý Nhân sự</p>
+    <form id="loginForm" autocomplete="off">
+        <label>Tên đăng nhập
+            <input name="username" required autofocus>
+        </label>
+        <label>Mật khẩu
+            <input name="password" type="password" required>
+        </label>
+        <button type="submit" class="btn btn-primary btn-block">Đăng nhập</button>
+        <p id="loginError" class="error" hidden></p>
+    </form>
+    <div class="hint">
+        Tài khoản mặc định: <code>admin / Admin@HRM2024!</code>
+    </div>
+</div>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>

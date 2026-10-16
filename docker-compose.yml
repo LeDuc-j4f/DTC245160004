@@ -1,0 +1,218 @@
+version: "3.9"
+
+# ============================================================================
+#  HRM - Human Resource Management System
+#  Stack: Node.js + Python (AI) + PostgreSQL + pgvector + pgAdmin + Nginx
+#  All services run as non-root users; isolated via 3 networks.
+# ============================================================================
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+    tag: "{{.Name}}"
+
+services:
+  # --------------------------------------------------------------------------
+  # Database
+  # --------------------------------------------------------------------------
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: hrm_db
+    restart: unless-stopped
+    user: "999:999"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - hrm_backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # --------------------------------------------------------------------------
+  # pgAdmin
+  # --------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: hrm_pgadmin
+    restart: unless-stopped
+    user: "5050:5050"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_LISTEN_PORT: 80
+      PGADMIN_DISABLE_POSTFIX: "True"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - hrm_backend
+      - hrm_frontend
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # --------------------------------------------------------------------------
+  # AI Worker (Python FastAPI + InsightFace)
+  # --------------------------------------------------------------------------
+  ai-worker:
+    build: ./ai-worker
+    container_name: hrm_ai
+    restart: unless-stopped
+    user: "1000:1000"
+    working_dir: /app
+    volumes:
+      - ai_uploads:/app/uploads
+    networks:
+      - hrm_backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+
+  # --------------------------------------------------------------------------
+  # Backend (Node.js Express)
+  # --------------------------------------------------------------------------
+  backend:
+    build: ./backend
+    container_name: hrm_backend
+    restart: unless-stopped
+    user: "1000:1000"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      BACKEND_PORT: ${BACKEND_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS}
+      AI_WORKER_URL: ${AI_WORKER_URL}
+      FACE_MATCH_THRESHOLD: ${FACE_MATCH_THRESHOLD}
+      WORK_START: ${WORK_START}
+      WORK_END: ${WORK_END}
+      LATE_GRACE_MINUTES: ${LATE_GRACE_MINUTES}
+      EARLY_LEAVE_GRACE_MINUTES: ${EARLY_LEAVE_GRACE_MINUTES}
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - hrm_backend
+      - hrm_frontend
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-worker:
+        condition: service_started
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # --------------------------------------------------------------------------
+  # Frontend (Nginx serving static files)
+  # --------------------------------------------------------------------------
+  frontend:
+    image: nginx:1.27-alpine
+    container_name: hrm_frontend
+    restart: unless-stopped
+    user: "101:101"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend/nginx-frontend.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${FRONTEND_PORT}:80"
+    networks:
+      - hrm_frontend
+    depends_on:
+      - backend
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # --------------------------------------------------------------------------
+  # Reverse proxy (Nginx with TLS + security headers)
+  # --------------------------------------------------------------------------
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: hrm_proxy
+    restart: unless-stopped
+    user: "101:101"
+    volumes:
+      - ./nginx/nginx-proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d/proxy.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - hrm_frontend
+      - hrm_backend
+    depends_on:
+      - backend
+      - frontend
+      - pgadmin
+    logging: *default-logging
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  hrm_frontend:
+    driver: bridge
+    name: hrm_frontend
+  hrm_backend:
+    driver: bridge
+    name: hrm_backend
+
+volumes:
+  db_data:
+    name: hrm_db_data
+  pgadmin_data:
+    name: hrm_pgadmin_data
+  ai_uploads:
+    name: hrm_ai_uploads
+  backend_uploads:
+    name: hrm_backend_uploads

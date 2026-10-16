@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HRM - Phòng ban</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand-sm">HRM</div>
+    <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="employees.html">Nhân viên</a>
+        <a href="departments.html" class="active">Phòng ban</a>
+        <a href="attendance.html">Chấm công</a>
+    </nav>
+    <div class="user">
+        <span id="meName">...</span>
+        <button id="btnLogout" class="btn btn-ghost">Đăng xuất</button>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-header">
+        <h1>Phòng ban</h1>
+        <button id="btnNewDept" class="btn btn-primary">+ Thêm phòng ban</button>
+    </div>
+
+    <div class="card">
+        <table class="table" id="deptTable">
+            <thead>
+                <tr><th>Tên</th><th>Mô tả</th><th>Số nhân viên</th><th></th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</main>
+
+<div id="deptModal" class="modal" hidden>
+    <div class="modal-card">
+        <h2>Thêm phòng ban</h2>
+        <form id="deptForm">
+            <label>Tên *<input name="name" required></label>
+            <label>Mô tả <textarea name="description"></textarea></label>
+            <div class="modal-actions">
+                <button type="button" id="btnCancel" class="btn">Hủy</button>
+                <button type="submit" class="btn btn-primary">Lưu</button>
+            </div>
+            <p id="deptFormError" class="error" hidden></p>
+        </form>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/departments.js"></script>
+</body>
+</html>

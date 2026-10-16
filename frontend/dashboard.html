@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HRM - Dashboard</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand-sm">HRM</div>
+    <nav>
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="employees.html">Nhân viên</a>
+        <a href="departments.html">Phòng ban</a>
+        <a href="attendance.html">Chấm công</a>
+    </nav>
+    <div class="user">
+        <span id="meName">...</span>
+        <button id="btnLogout" class="btn btn-ghost">Đăng xuất</button>
+    </div>
+</header>
+
+<main class="container">
+    <h1>Tổng quan hôm nay</h1>
+    <p class="muted" id="todayLabel">...</p>
+
+    <div class="grid grid-stats">
+        <div class="card stat">
+            <div class="stat-label">Nhân viên active</div>
+            <div class="stat-value" id="statActive">-</div>
+        </div>
+        <div class="card stat stat-green">
+            <div class="stat-label">Đúng giờ hôm nay</div>
+            <div class="stat-value" id="statOnTime">-</div>
+        </div>
+        <div class="card stat stat-amber">
+            <div class="stat-label">Đi muộn hôm nay</div>
+            <div class="stat-value" id="statLate">-</div>
+        </div>
+        <div class="card stat stat-red">
+            <div class="stat-label">Vắng hôm nay</div>
+            <div class="stat-value" id="statAbsent">-</div>
+        </div>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <h2>Xu hướng 7 ngày gần nhất</h2>
+            <table class="table" id="trendTable">
+                <thead>
+                    <tr><th>Ngày</th><th>Đúng giờ</th><th>Muộn</th><th>Về sớm</th><th>Vắng</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="card">
+            <h2>Top 5 đi muộn trong tháng</h2>
+            <table class="table" id="topLateTable">
+                <thead><tr><th>Mã NV</th><th>Họ tên</th><th>Số lần muộn</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Hoạt động trong 1 giờ qua</h2>
+        <table class="table" id="recentTable">
+            <thead>
+                <tr><th>Thời gian</th><th>Nhân viên</th><th>Loại</th><th>Trạng thái</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

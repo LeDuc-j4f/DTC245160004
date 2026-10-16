@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HRM - Chấm công</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand-sm">HRM</div>
+    <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="employees.html">Nhân viên</a>
+        <a href="departments.html">Phòng ban</a>
+        <a href="attendance.html" class="active">Chấm công</a>
+    </nav>
+    <div class="user">
+        <span id="meName">...</span>
+        <button id="btnLogout" class="btn btn-ghost">Đăng xuất</button>
+    </div>
+</header>
+
+<main class="container">
+    <h1>Chấm công tự động bằng khuôn mặt</h1>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <h2>Camera</h2>
+            <video id="video" autoplay playsinline width="100%" style="background:#000;border-radius:6px"></video>
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                <button id="btnStartCam" class="btn btn-primary">Bật camera</button>
+                <button id="btnStopCam"  class="btn">Tắt camera</button>
+                <button id="btnCapture"  class="btn btn-primary" disabled>Chấm công (chụp & gửi)</button>
+                <label class="btn" style="cursor:pointer">
+                    Tải ảnh lên
+                    <input id="fileInput" type="file" accept="image/*" style="display:none">
+                </label>
+            </div>
+            <p id="captureHint" class="muted" style="margin-top:8px">Hãy đưa mặt vào khung hình rồi bấm "Chấm công".</p>
+        </div>
+
+        <div class="card">
+            <h2>Kết quả</h2>
+            <div id="resultBox" class="result-empty">Chưa có kết quả.</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Lịch sử gần đây của bạn</h2>
+        <table class="table" id="myAttTable">
+            <thead>
+                <tr><th>Ngày</th><th>Vào</th><th>Ra</th><th>Trạng thái</th><th>Độ tin cậy</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/attendance.js"></script>
+</body>
+</html>

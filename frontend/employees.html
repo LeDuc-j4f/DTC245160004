@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HRM - Nhân viên</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand-sm">HRM</div>
+    <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="employees.html" class="active">Nhân viên</a>
+        <a href="departments.html">Phòng ban</a>
+        <a href="attendance.html">Chấm công</a>
+    </nav>
+    <div class="user">
+        <span id="meName">...</span>
+        <button id="btnLogout" class="btn btn-ghost">Đăng xuất</button>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-header">
+        <h1>Quản lý nhân viên</h1>
+        <button id="btnNewEmp" class="btn btn-primary">+ Thêm nhân viên</button>
+    </div>
+
+    <div class="card">
+        <div class="filter-bar">
+            <input id="searchInput" placeholder="Tìm theo tên hoặc mã NV...">
+            <select id="deptFilter"><option value="">-- Phòng ban --</option></select>
+            <select id="statusFilter">
+                <option value="active">Đang làm</option>
+                <option value="terminated">Đã nghỉ</option>
+                <option value="on_leave">Nghỉ phép</option>
+            </select>
+            <button id="btnReload" class="btn">Tải lại</button>
+        </div>
+        <table class="table" id="empTable">
+            <thead>
+                <tr>
+                    <th>Mã NV</th><th>Họ tên</th><th>Phòng ban</th><th>Chức vụ</th>
+                    <th>Trạng thái</th><th>Khuôn mặt</th><th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</main>
+
+<!-- Modal thêm/sửa nhân viên -->
+<div id="empModal" class="modal" hidden>
+    <div class="modal-card">
+        <h2 id="empModalTitle">Thêm nhân viên</h2>
+        <form id="empForm" enctype="multipart/form-data">
+            <input type="hidden" name="id">
+            <label>Mã NV *<input name="employee_code" required></label>
+            <label>Họ tên *<input name="full_name" required></label>
+            <label>Email <input name="email" type="email"></label>
+            <label>Điện thoại <input name="phone"></label>
+            <label>Phòng ban
+                <select name="department_id" id="empDeptSelect"></select>
+            </label>
+            <label>Chức vụ <input name="position"></label>
+            <label>Ngày vào làm <input name="hire_date" type="date"></label>
+            <label>Ảnh khuôn mặt (để đăng ký nhận diện)
+                <input name="file" type="file" accept="image/*">
+            </label>
+            <div class="modal-actions">
+                <button type="button" id="btnCancel" class="btn">Hủy</button>
+                <button type="submit" class="btn btn-primary">Lưu</button>
+            </div>
+            <p id="empFormError" class="error" hidden></p>
+        </form>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/employees.js"></script>
+</body>
+</html>

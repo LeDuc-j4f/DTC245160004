@@ -1,0 +1,68 @@
+# ====================================================================
+#  HRM - Git ignore
+# ====================================================================
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+.tox/
+.venv/
+venv/
+env/
+ENV/
+models/
+*.pt
+*.onnx
+*.h5
+*.pkl
+
+# AI worker uploads
+uploads/
+
+# Backups
+backups/
+
+# Self-signed certs
+nginx/certs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# OS
+.directory
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# Docker
+*.pid
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Tests
+.jest-cache/
