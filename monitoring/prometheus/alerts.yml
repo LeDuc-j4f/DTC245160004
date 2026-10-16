@@ -1,0 +1,34 @@
+groups:
+  - name: hrm-alerts
+    rules:
+      - alert: HighContainerCpu
+        expr: rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} CPU > 80%"
+
+      - alert: ContainerStuck
+        expr: time() - container_start_time_seconds{name!=""} > 600 and rate(container_cpu_usage_seconds_total{name!=""}[5m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.name }} seems stuck"
+
+      - alert: HighDbConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB connections > 80"
+
+      - alert: HostDiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space < 10% on /"

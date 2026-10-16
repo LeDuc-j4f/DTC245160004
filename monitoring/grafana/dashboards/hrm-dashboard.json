@@ -1,0 +1,63 @@
+{
+  "title": "HRM - System Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Container CPU Usage",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "rate(container_cpu_usage_seconds_total{name!=\"\"}[5m]) * 100", "legendFormat": "{{name}}" }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Container Memory Usage (MB)",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        { "expr": "container_memory_rss{name!=\"\"} / 1024 / 1024", "legendFormat": "{{name}}" }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "PostgreSQL Connections",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 6 },
+      "targets": [{ "expr": "pg_stat_activity_count" }]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Database Size (MB)",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 6 },
+      "targets": [{ "expr": "pg_database_size_bytes / 1024 / 1024" }]
+    },
+    {
+      "id": 5,
+      "type": "logs",
+      "title": "Recent backend errors",
+      "datasource": "Loki",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [{ "expr": "{job=\"hrm-backend\"} |= \"error\"" }]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Disk usage %",
+      "datasource": "Prometheus",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 6 },
+      "targets": [
+        { "expr": "(node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"}) * 100" }
+      ]
+    }
+  ]
+}
