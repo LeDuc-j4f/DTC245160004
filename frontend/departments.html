@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HRM - Phòng ban</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2.5">
 </head>
 <body>
 <header class="topbar">
@@ -13,6 +13,7 @@
         <a href="dashboard.html">Dashboard</a>
         <a href="employees.html">Nhân viên</a>
         <a href="departments.html" class="active">Phòng ban</a>
+        <a href="shifts.html">Ca làm việc</a>
         <a href="attendance.html">Chấm công</a>
     </nav>
     <div class="user">
@@ -30,19 +31,23 @@
     <div class="card">
         <table class="table" id="deptTable">
             <thead>
-                <tr><th>Tên</th><th>Mô tả</th><th>Số nhân viên</th><th></th></tr>
+                <tr><th>Tên</th><th>Mô tả</th><th>Số nhân viên</th><th>Hành động</th></tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
 </main>
 
-<div id="deptModal" class="modal" hidden>
+<div id="deptModal" class="modal" style="display: none !important;" aria-hidden="true">
     <div class="modal-card">
-        <h2>Thêm phòng ban</h2>
+        <div class="modal-header">
+            <h2 id="deptModalTitle">Thêm phòng ban</h2>
+            <button type="button" class="btn-close" id="btnCloseDeptModal" title="Đóng">&times;</button>
+        </div>
         <form id="deptForm">
-            <label>Tên *<input name="name" required></label>
-            <label>Mô tả <textarea name="description"></textarea></label>
+            <input type="hidden" name="id" id="deptIdInput">
+            <label>Tên *<input name="name" id="deptNameInput" required></label>
+            <label>Mô tả <textarea name="description" id="deptDescInput"></textarea></label>
             <div class="modal-actions">
                 <button type="button" id="btnCancel" class="btn">Hủy</button>
                 <button type="submit" class="btn btn-primary">Lưu</button>
@@ -52,7 +57,7 @@
     </div>
 </div>
 
-<script src="js/api.js"></script>
-<script src="js/departments.js"></script>
+<script src="js/api.js?v=2.1"></script>
+<script src="js/departments.js?v=2.1"></script>
 </body>
 </html>

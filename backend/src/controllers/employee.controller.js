@@ -28,9 +28,28 @@ const updateValidation = [
     runValidation,
 ];
 
+async function syncExpiredLeaves() {
+    try {
+        const res = await pool.query(`
+            UPDATE employees
+            SET status = 'active', leave_start = NULL, leave_end = NULL, updated_at = NOW()
+            WHERE status = 'on_leave' AND leave_end IS NOT NULL AND leave_end < CURRENT_DATE
+            RETURNING id, employee_code, full_name
+        `);
+        if (res.rowCount > 0) {
+            logger.info('Auto-reactivated employees whose leave expired', { count: res.rowCount, employees: res.rows });
+        }
+        return res.rowCount;
+    } catch (e) {
+        logger.error('syncExpiredLeaves error', { err: e.message });
+        return 0;
+    }
+}
+
 async function list(req, res) {
     const { search = '', department_id, status = 'active', limit = 50, offset = 0 } = req.query;
     try {
+        await syncExpiredLeaves();
         const params = [];
         const where = [];
         if (search) {
@@ -50,7 +69,7 @@ async function list(req, res) {
         const sql = `
             SELECT e.id, e.employee_code, e.full_name, e.email, e.phone,
                    e.department_id, d.name AS department_name,
-                   e.position, e.hire_date, e.status, e.face_image_path,
+                   e.position, e.hire_date, e.status, e.leave_start, e.leave_end, e.work_start, e.work_end, e.shift_name, e.face_image_path,
                    e.created_at, e.updated_at,
                    (e.face_embedding IS NOT NULL) AS has_face
             FROM employees e
@@ -70,10 +89,11 @@ async function list(req, res) {
 async function getOne(req, res) {
     const id = parseInt(req.params.id, 10);
     try {
+        await syncExpiredLeaves();
         const r = await pool.query(
             `SELECT e.id, e.employee_code, e.full_name, e.email, e.phone,
                     e.department_id, d.name AS department_name,
-                    e.position, e.hire_date, e.status, e.face_image_path,
+                    e.position, e.hire_date, e.status, e.leave_start, e.leave_end, e.work_start, e.work_end, e.shift_name, e.face_image_path,
                     e.created_at, e.updated_at,
                     (e.face_embedding IS NOT NULL) AS has_face
              FROM employees e
@@ -90,7 +110,7 @@ async function getOne(req, res) {
 }
 
 async function create(req, res) {
-    const { employee_code, full_name, email, phone, department_id, position, hire_date } = req.body;
+    const { employee_code, full_name, email, phone, department_id, position, hire_date, work_start, work_end, shift_name } = req.body;
     const file = req.file;  // multer single
     try {
         let embedding = null;
@@ -124,14 +144,17 @@ async function create(req, res) {
         const r = await pool.query(
             `INSERT INTO employees
                 (employee_code, full_name, email, phone, department_id, position,
-                 hire_date, face_embedding, face_image_path)
+                 hire_date, work_start, work_end, shift_name, face_embedding, face_image_path)
              VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7::date, CURRENT_DATE),
-                     ${embedding ? '$8::vector' : 'NULL'}, $9)
+                     COALESCE($8, '08:30'), COALESCE($9, '17:30'), COALESCE($10, 'Ca ngày (08:30 - 17:30)'),
+                     $11::vector, $12)
              RETURNING id, employee_code, full_name, email, phone, department_id,
-                       position, hire_date, status, face_image_path, has_face`,
+                       position, hire_date, status, work_start, work_end, shift_name, face_image_path,
+                       (face_embedding IS NOT NULL) AS has_face`,
             [
                 employee_code, full_name, email || null, phone || null,
                 department_id || null, position || null, hire_date || null,
+                work_start || '08:30', work_end || '17:30', shift_name || 'Ca ngày (08:30 - 17:30)',
                 embedding ? toVectorLiteral(embedding) : null,
                 facePath,
             ]
@@ -153,7 +176,7 @@ async function create(req, res) {
 
 async function update(req, res) {
     const id = parseInt(req.params.id, 10);
-    const { full_name, email, phone, department_id, position, status } = req.body;
+    const { full_name, email, phone, department_id, position, status, work_start, work_end, shift_name, leave_start, leave_end } = req.body;
     const file = req.file;
     try {
         // Optional re-registration of face embedding
@@ -180,6 +203,9 @@ async function update(req, res) {
             }
         }
 
+        let leaveStartExpr = status === 'active' ? null : (leave_start || null);
+        let leaveEndExpr = status === 'active' ? null : (leave_end || null);
+
         const r = await pool.query(
             `UPDATE employees SET
                 full_name       = COALESCE($1, full_name),
@@ -188,17 +214,24 @@ async function update(req, res) {
                 department_id   = COALESCE($4, department_id),
                 position        = COALESCE($5, position),
                 status          = COALESCE($6, status),
-                face_embedding  = COALESCE($7::vector, face_embedding),
-                face_image_path = COALESCE($8, face_image_path)
-             WHERE id = $9
-             RETURNING id, employee_code, full_name, email, phone, department_id,
-                       position, hire_date, status,
-                       (face_embedding IS NOT NULL) AS has_face`,
+                work_start      = COALESCE($7, work_start),
+                work_end        = COALESCE($8, work_end),
+                shift_name      = COALESCE($9, shift_name),
+                face_embedding  = COALESCE($10::vector, face_embedding),
+                face_image_path = COALESCE($11, face_image_path),
+                leave_start     = (CASE WHEN $6 = 'active' THEN NULL WHEN $6 = 'on_leave' THEN COALESCE($12::date, CURRENT_DATE) ELSE leave_start END),
+                leave_end       = (CASE WHEN $6 = 'active' THEN NULL WHEN $6 = 'on_leave' THEN COALESCE($13::date, CURRENT_DATE) ELSE leave_end END)
+            WHERE id = $14
+            RETURNING id, employee_code, full_name, email, phone, department_id,
+                      position, hire_date, status, leave_start, leave_end, work_start, work_end, shift_name,
+                      (face_embedding IS NOT NULL) AS has_face`,
             [
                 full_name || null, email || null, phone || null,
                 department_id || null, position || null, status || null,
+                work_start || null, work_end || null, shift_name || null,
                 embedding ? toVectorLiteral(embedding) : null,
                 facePath || null,
+                leaveStartExpr, leaveEndExpr,
                 id,
             ]
         );
@@ -206,7 +239,7 @@ async function update(req, res) {
         await pool.query(
             `INSERT INTO audit_log (user_id, action, entity, entity_id, payload)
              VALUES ($1, 'update', 'employee', $2, $3)`,
-            [req.user.sub, id, JSON.stringify({ has_face: r.rows[0].has_face })]
+            [req.user.sub, id, JSON.stringify({ has_face: r.rows[0].has_face, status: r.rows[0].status, leave_end: r.rows[0].leave_end })]
         );
         return res.json({ ok: true, data: r.rows[0] });
     } catch (err) {
@@ -217,7 +250,17 @@ async function update(req, res) {
 
 async function softDelete(req, res) {
     const id = parseInt(req.params.id, 10);
+    const hard = req.query.hard === 'true';
     try {
+        if (hard) {
+            const r = await pool.query(`DELETE FROM employees WHERE id = $1 RETURNING id`, [id]);
+            if (r.rowCount === 0) return res.status(404).json({ ok: false, error: 'Not found' });
+            await pool.query(
+                `INSERT INTO audit_log (user_id, action, entity, entity_id) VALUES ($1, 'delete', 'employee', $2)`,
+                [req.user.sub, id]
+            );
+            return res.json({ ok: true, data: { id, deleted: true } });
+        }
         const r = await pool.query(
             `UPDATE employees SET status = 'terminated' WHERE id = $1 RETURNING id`,
             [id]
@@ -229,12 +272,40 @@ async function softDelete(req, res) {
         );
         return res.json({ ok: true, data: { id, status: 'terminated' } });
     } catch (err) {
-        logger.error('terminate employee', { err: err.message });
+        logger.error('delete employee', { err: err.message });
         return res.status(500).json({ ok: false, error: 'Failed' });
     }
 }
 
+async function bulkShift(req, res) {
+    const { employee_ids, shift_name, work_start, work_end } = req.body;
+    if (!Array.isArray(employee_ids) || employee_ids.length === 0) {
+        return res.status(400).json({ ok: false, error: 'employee_ids must be a non-empty array' });
+    }
+    if (!work_start || !work_end) {
+        return res.status(400).json({ ok: false, error: 'work_start and work_end are required' });
+    }
+    try {
+        const r = await pool.query(
+            `UPDATE employees
+             SET shift_name = $1, work_start = $2, work_end = $3
+             WHERE id = ANY($4::int[])
+             RETURNING id, employee_code, full_name, shift_name, work_start, work_end`,
+            [shift_name || 'Tùy chỉnh', work_start, work_end, employee_ids]
+        );
+        await pool.query(
+            `INSERT INTO audit_log (user_id, action, entity, payload) VALUES ($1, 'bulk_shift', 'employee', $2)`,
+            [req.user.sub, JSON.stringify({ count: r.rowCount, shift_name, work_start, work_end })]
+        );
+        return res.json({ ok: true, data: { updated_count: r.rowCount, employees: r.rows } });
+    } catch (err) {
+        logger.error('bulk shift update', { err: err.message });
+        return res.status(500).json({ ok: false, error: 'Failed to update shifts' });
+    }
+}
+
 module.exports = {
-    list, getOne, create, update, softDelete,
-    createValidation, updateValidation,
+    list, getOne, create, update, softDelete, bulkShift,
+    createValidation, updateValidation, syncExpiredLeaves,
 };
+

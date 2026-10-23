@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- Enums
 -- ============================================================================
 DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('admin', 'hr', 'employee');
+    CREATE TYPE user_role AS ENUM ('admin', 'hr', 'employee', 'kiosk');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
@@ -54,6 +54,17 @@ CREATE TABLE IF NOT EXISTS departments (
 );
 
 -- ============================================================================
+-- shifts (ca làm việc)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS shifts (
+    id          SERIAL PRIMARY KEY,
+    name        VARCHAR(128) NOT NULL UNIQUE,
+    work_start  VARCHAR(8)   NOT NULL,
+    work_end    VARCHAR(8)   NOT NULL,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================================
 -- employees
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS employees (
@@ -66,6 +77,11 @@ CREATE TABLE IF NOT EXISTS employees (
     position          VARCHAR(64),
     hire_date         DATE NOT NULL DEFAULT CURRENT_DATE,
     status            employee_status NOT NULL DEFAULT 'active',
+    leave_start       DATE,
+    leave_end         DATE,
+    work_start        VARCHAR(8) NOT NULL DEFAULT '08:30',
+    work_end          VARCHAR(8) NOT NULL DEFAULT '17:30',
+    shift_name        VARCHAR(64) NOT NULL DEFAULT 'Ca ngày (08:30 - 17:30)',
     face_embedding    VECTOR(512),
     face_image_path   VARCHAR(255),
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -92,6 +108,8 @@ CREATE TABLE IF NOT EXISTS attendance (
     check_in          TIMESTAMPTZ,
     check_out         TIMESTAMPTZ,
     status            attendance_status NOT NULL DEFAULT 'on_time',
+    check_in_status   VARCHAR(32) DEFAULT 'on_time',
+    check_out_status  VARCHAR(32),
     check_in_method   attendance_method,
     check_out_method  attendance_method,
     confidence_in     NUMERIC(5,4),
@@ -180,7 +198,9 @@ INSERT INTO users (username, password_hash, role, employee_id) VALUES
     ('hr01',  '$2a$12$l6H7VMTZBid.emrBa3IWU.5kSlrqOFb58wcC1PMcxAKAABvqX9xCu', 'hr',
         (SELECT id FROM employees WHERE employee_code='NV002')),
     ('nv001', '$2a$12$v1v5644HG6c..AP8bqsVTuXa0fPD2jTogN721hyIVCXZ.C10Hrigy', 'employee',
-        (SELECT id FROM employees WHERE employee_code='NV001'))
+        (SELECT id FROM employees WHERE employee_code='NV001')),
+    ('chamcong', '$2a$10$h3Ify4dymKq6ZzII/n8/OevQi1K6v2Bad8yOsTwsA.1P0lbNiuv7K', 'kiosk', NULL),
+    ('kiosk',    '$2a$10$MbhvcR4m8QKTOz0EVF4vsOGOKcMM15LsUTznU6JXi/Igmn31WzuW2', 'kiosk', NULL)
 ON CONFLICT (username) DO UPDATE SET
     password_hash = EXCLUDED.password_hash,
     role = EXCLUDED.role,

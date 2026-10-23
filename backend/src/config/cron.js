@@ -28,14 +28,25 @@ async function markAbsentForDate(dateStr) {
     return r.rowCount;
 }
 
+const { syncExpiredLeaves } = require('../controllers/employee.controller');
+
 function scheduleAbsentJob() {
-    // Every day at 23:00, mark yesterday's absent
+    // Every day at 00:00, auto-reactivate employees whose leave period ended
+    cron.schedule('0 0 * * *', async () => {
+        try {
+            await syncExpiredLeaves();
+        } catch (err) {
+            logger.error('Sync expired leaves cron failed', { err: err.message });
+        }
+    }, { timezone: 'Asia/Ho_Chi_Minh' });
+
+    // Every day at 23:00, mark absent for employees who did not check in today
     cron.schedule('0 23 * * *', async () => {
         try {
-            const y = new Date();
-            y.setDate(y.getDate() - 1);
-            const yStr = y.toISOString().slice(0, 10);
-            await markAbsentForDate(yStr);
+            const localNow = new Date(Date.now() + 7 * 60 * 60 * 1000);
+            const todayStr = localNow.toISOString().slice(0, 10);
+            await syncExpiredLeaves();
+            await markAbsentForDate(todayStr);
         } catch (err) {
             logger.error('Absent cron failed', { err: err.message });
         }

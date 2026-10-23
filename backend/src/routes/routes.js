@@ -14,6 +14,7 @@ const empCtrl        = require('../controllers/employee.controller');
 const deptCtrl       = require('../controllers/department.controller');
 const attCtrl        = require('../controllers/attendance.controller');
 const dashCtrl       = require('../controllers/dashboard.controller');
+const shiftCtrl      = require('../controllers/shift.controller');
 
 const router = express.Router();
 
@@ -31,13 +32,13 @@ router.post('/auth/register', authRequired, requireRole('admin'), authCtrl.regis
 router.get('/auth/me', authRequired, authCtrl.me);
 
 // ---------- Departments ----------
-router.get('/departments', authRequired, deptCtrl.list);
+router.get('/departments', authRequired, requireRole('admin', 'hr', 'employee'), deptCtrl.list);
 router.post('/departments', authRequired, requireRole('admin', 'hr'), deptCtrl.createValidation, deptCtrl.create);
 router.put('/departments/:id', authRequired, requireRole('admin', 'hr'), deptCtrl.update);
 router.delete('/departments/:id', authRequired, requireRole('admin'), deptCtrl.softDelete);
 
 // ---------- Employees ----------
-router.get('/employees', authRequired, empCtrl.list);
+router.get('/employees', authRequired, requireRole('admin', 'hr', 'employee'), empCtrl.list);
 router.get('/employees/:id', authRequired,
     requireSelfOrRole('id', 'admin', 'hr'),
     empCtrl.getOne);
@@ -48,6 +49,7 @@ router.put('/employees/:id', authRequired, requireRole('admin', 'hr'),
     upload.single('file'),
     empCtrl.updateValidation, empCtrl.update);
 router.delete('/employees/:id', authRequired, requireRole('admin'), empCtrl.softDelete);
+router.post('/employees/bulk-shift', authRequired, requireRole('admin', 'hr'), empCtrl.bulkShift);
 
 // ---------- Attendance ----------
 router.post('/attendance/face-check',
@@ -55,9 +57,14 @@ router.post('/attendance/face-check',
     upload.single('file'),
     attCtrl.faceCheck);
 router.post('/attendance/manual', authRequired, requireRole('admin', 'hr'), attCtrl.manualCheck);
-router.get('/attendance', authRequired, requireRole('admin', 'hr'),
+router.get('/attendance', authRequired, requireRole('admin', 'hr', 'kiosk'),
     attCtrl.listValidation, attCtrl.list);
 router.get('/attendance/me', authRequired, attCtrl.myHistory);
+
+// ---------- Shifts ----------
+router.get('/shifts', authRequired, requireRole('admin', 'hr', 'employee'), shiftCtrl.list);
+router.post('/shifts', authRequired, requireRole('admin', 'hr'), shiftCtrl.create);
+router.delete('/shifts/:id', authRequired, requireRole('admin', 'hr'), shiftCtrl.remove);
 
 // ---------- Dashboard ----------
 router.get('/dashboard/overview', authRequired, requireRole('admin', 'hr'), dashCtrl.overview);

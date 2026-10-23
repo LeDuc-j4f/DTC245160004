@@ -27,7 +27,7 @@ app.use(helmet({
 }));
 
 // CORS — allow only known origins (mirror Nginx whitelist)
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost,http://localhost:80,http://localhost:8080,http://127.0.0.1')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost,http://localhost:80,http://localhost:8080,http://127.0.0.1,https://localhost,https://127.0.0.1')
     .split(',').map(s => s.trim()).filter(Boolean);
 app.use(cors({
     origin: (origin, cb) => {
@@ -54,6 +54,7 @@ app.use(globalLimiter);
 
 // Health check (public)
 app.get('/health', (req, res) => res.json({ ok: true, service: 'hrm-backend', time: new Date().toISOString() }));
+app.get('/api/health', (req, res) => res.json({ ok: true, service: 'hrm-backend', time: new Date().toISOString() }));
 
 // API routes
 app.use('/api', routes);
@@ -75,6 +76,10 @@ app.use((err, req, res, _next) => {
     try {
         await checkDb();
         logger.info('Database connected');
+        await pool.query(`
+            ALTER TABLE attendance ADD COLUMN IF NOT EXISTS check_in_status VARCHAR(32) DEFAULT 'on_time';
+            ALTER TABLE attendance ADD COLUMN IF NOT EXISTS check_out_status VARCHAR(32);
+        `);
         scheduleAbsentJob();
         app.listen(PORT, '0.0.0.0', () => {
             logger.info(`HRM backend listening on port ${PORT}`);

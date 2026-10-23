@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HRM - Quản lý ca làm việc</title>
+<link rel="stylesheet" href="css/style.css?v=2.5">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand-sm">HRM</div>
+    <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="employees.html">Nhân viên</a>
+        <a href="departments.html">Phòng ban</a>
+        <a href="shifts.html" class="active">Ca làm việc</a>
+        <a href="attendance.html">Chấm công</a>
+    </nav>
+    <div class="user">
+        <span id="meName">...</span>
+        <button id="btnLogout" class="btn btn-ghost">Đăng xuất</button>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-header" style="margin-bottom: 16px;">
+        <div>
+            <h1 style="margin: 0 0 4px 0;">Quản lý ca làm việc</h1>
+            <div class="muted">Quản lý và phân bổ ca làm việc cho nhân viên theo các ca mẫu tiêu chuẩn</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+            <button id="btnOpenCreateShift" class="btn btn-secondary">+ Thêm ca mới</button>
+            <button id="btnBulkShiftModal" class="btn btn-primary" disabled>Đổi ca hàng loạt (<span id="bulkBtnCount">0</span>)</button>
+        </div>
+    </div>
+
+    <!-- Thống kê ca làm -->
+    <div class="grid grid-stats" id="shiftStatsGrid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+        <div class="card stat">
+            <div class="stat-label">Tổng nhân viên</div>
+            <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="card stat stat-green">
+            <div class="stat-label">Ca ngày (08:30 - 17:30)</div>
+            <div class="stat-value" id="statDay">0</div>
+        </div>
+        <div class="card stat stat-amber">
+            <div class="stat-label">Ca sáng (06:00 - 14:00)</div>
+            <div class="stat-value" id="statMorning">0</div>
+        </div>
+        <div class="card stat" style="color: #9a3412;">
+            <div class="stat-label">Ca chiều (14:00 - 22:00)</div>
+            <div class="stat-value" id="statAfternoon">0</div>
+        </div>
+        <div class="card stat" style="color: #5b21b6;">
+            <div class="stat-label">Ca đêm (20:00 - 05:00)</div>
+            <div class="stat-value" id="statNight">0</div>
+        </div>
+    </div>
+
+    <!-- Thanh thao tác chọn nhiều (hiện khi chọn ít nhất 1 checkbox) -->
+    <div id="bulkBar" class="bulk-bar" style="display: none;">
+        <div>
+            <strong>Đã chọn:</strong> <span id="selectedCountBadge" style="background: #2563eb; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0</span> nhân viên
+        </div>
+        <div class="bulk-bar-actions">
+            <button id="btnBulkAction" class="btn btn-primary btn-sm">Đổi ca cho các nhân viên đã chọn</button>
+            <button id="btnClearSelection" class="btn btn-secondary btn-sm">Bỏ chọn tất cả</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="filter-bar">
+            <input id="searchInput" placeholder="Tìm theo tên hoặc mã nhân viên...">
+            <select id="deptFilter"><option value="">-- Tất cả phòng ban --</option></select>
+            <select id="shiftFilter">
+                <option value="">-- Tất cả ca làm việc --</option>
+            </select>
+            <select id="statusFilter">
+                <option value="active">Đang làm việc</option>
+                <option value="">Tất cả trạng thái</option>
+                <option value="terminated">Đã nghỉ việc</option>
+                <option value="on_leave">Nghỉ phép</option>
+            </select>
+            <button id="btnReload" class="btn">Tải lại</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="table" id="shiftTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; text-align: center;">
+                            <input type="checkbox" id="selectAllCheckbox" title="Chọn tất cả">
+                        </th>
+                        <th>Mã NV</th>
+                        <th>Họ tên</th>
+                        <th>Phòng ban</th>
+                        <th>Chức vụ</th>
+                        <th>Ca làm việc hiện tại</th>
+                        <th>Trạng thái</th>
+                        <th style="text-align: right;">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="8" class="muted text-center" style="padding: 24px;">Đang tải danh sách nhân viên...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Đổi ca làm việc (đơn lẻ hoặc hàng loạt) -->
+<div id="shiftModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 id="shiftModalTitle">Thiết lập ca làm việc</h2>
+            <button type="button" class="btn-close" id="btnCloseShiftModal" title="Đóng">&times;</button>
+        </div>
+        <form id="shiftForm">
+            <div id="targetSummary" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; margin-bottom: 12px; font-size: 0.9em;">
+                Đang cập nhật ca cho nhân viên...
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label for="shiftPresetSelect" style="margin: 0; font-weight: 600;">Chọn ca làm việc:</label>
+                <button type="button" id="btnQuickCreateShift" class="btn btn-ghost btn-sm" style="color: #2563eb; font-size: 0.85em; padding: 2px 8px; font-weight: 600;">+ Thêm ca mới...</button>
+            </div>
+            <select id="shiftPresetSelect" style="margin-bottom: 12px; font-size: 1em; padding: 10px;" required>
+                <!-- Populated dynamically -->
+            </select>
+
+            <!-- Hộp tạo ca mới trực tiếp ngay trong modal đổi ca -->
+            <div id="inlineCreateShiftBox" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+                <div style="font-weight: 600; color: #166534; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Tạo ca làm việc mới:</span>
+                    <button type="button" id="btnCancelInlineShift" class="btn btn-ghost btn-sm" style="font-size: 0.8em; color: #6b7280; padding: 2px 6px;">Đóng</button>
+                </div>
+                <label for="inlineShiftName" style="margin: 0 0 4px 0; font-size: 0.85em; font-weight: 500;">Tên ca làm việc: *</label>
+                <input type="text" id="inlineShiftName" placeholder="Ví dụ: Ca trưa, Ca gãy..." style="margin-bottom: 8px; width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px;">
+                <div class="grid grid-2" style="gap: 8px; margin-bottom: 10px;">
+                    <div>
+                        <label for="inlineShiftStart" style="margin: 0 0 4px 0; font-size: 0.85em; font-weight: 500;">Giờ vào ca: *</label>
+                        <input type="time" id="inlineShiftStart" value="09:00" style="width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label for="inlineShiftEnd" style="margin: 0 0 4px 0; font-size: 0.85em; font-weight: 500;">Giờ tan ca: *</label>
+                        <input type="time" id="inlineShiftEnd" value="18:00" style="width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px;">
+                    </div>
+                </div>
+                <div id="inlineShiftError" class="error" hidden style="margin-bottom: 8px;"></div>
+                <button type="button" id="btnSaveInlineShift" class="btn btn-primary btn-sm" style="width: 100%; padding: 8px; font-weight: 600;">Lưu vào danh sách & Chọn ca này</button>
+            </div>
+
+            <!-- Ẩn các trường giờ tự động tính theo ca mẫu -->
+            <input type="hidden" id="shiftStartTime" value="08:30">
+            <input type="hidden" id="shiftEndTime" value="17:30">
+
+            <div class="muted" style="font-size: 0.85em; margin-bottom: 14px; background: #eff6ff; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                Giờ chấm công vào/ra sẽ tự động áp dụng theo ca làm việc được chọn.
+            </div>
+
+            <div id="shiftModalError" class="error" hidden style="margin-bottom: 12px;"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btnCancelShiftModal">Hủy</button>
+                <button type="submit" class="btn btn-primary" id="btnSaveShift">Lưu ca làm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Thêm ca làm việc mới (độc lập từ nút ngoài trang) -->
+<div id="createShiftModal" class="modal" aria-hidden="true" style="z-index: 2000;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Thêm ca làm việc mới</h2>
+            <button type="button" class="btn-close" id="btnCloseCreateShiftModal" title="Đóng">&times;</button>
+        </div>
+        <form id="createShiftForm">
+            <label for="newShiftName">Tên ca làm việc: *</label>
+            <input type="text" id="newShiftName" placeholder="Ví dụ: Ca trưa, Ca hành chính, Ca gãy..." required style="margin-bottom: 12px;">
+
+            <div class="grid grid-2" style="margin-bottom: 12px;">
+                <div>
+                    <label for="newShiftStart">Giờ vào ca: *</label>
+                    <input type="time" id="newShiftStart" value="09:00" required>
+                </div>
+                <div>
+                    <label for="newShiftEnd">Giờ tan ca: *</label>
+                    <input type="time" id="newShiftEnd" value="17:00" required>
+                </div>
+            </div>
+
+            <div class="muted" style="font-size: 0.85em; margin-bottom: 14px; background: #eff6ff; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3b82f6;">
+                Ca làm việc mới sẽ được lưu vào danh sách hệ thống và sẵn sàng để phân ca cho nhân viên bất cứ lúc nào.
+            </div>
+
+            <div id="createShiftError" class="error" hidden style="margin-bottom: 12px;"></div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="btnCancelCreateShift">Hủy</button>
+                <button type="submit" class="btn btn-primary" id="btnSaveNewShift">Lưu vào danh sách ca</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="js/api.js?v=2.4"></script>
+<script src="js/shifts.js?v=2.4"></script>
+</body>
+</html>

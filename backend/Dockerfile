@@ -1,13 +1,13 @@
 FROM node:20-alpine
 
-# Create non-root user
-RUN addgroup -g 1000 -S app && adduser -u 1000 -S app -G app
+# Create non-root user (use 1001 to avoid GID conflict)
+RUN addgroup -g 1001 -S app && adduser -u 1001 -S app -G app
 
 WORKDIR /app
 
 # Install deps first (better layer caching)
 COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 # Copy source
 COPY . .
@@ -20,6 +20,7 @@ USER app
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health || exit 1
 
 CMD ["node", "server.js"]
+
