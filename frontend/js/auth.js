@@ -7,8 +7,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const errEl = document.getElementById('loginError');
     errEl.hidden = true;
     try {
-        await API.login(username, password);
-        location.href = 'dashboard.html';
+        const res = await API.login(username, password);
+        if (res && res.user && (res.user.role === 'employee' || res.user.role === 'kiosk')) {
+            location.href = 'attendance.html';
+        } else {
+            location.href = 'dashboard.html';
+        }
     } catch (err) {
         errEl.textContent = err.message || 'Đăng nhập thất bại';
         errEl.hidden = false;

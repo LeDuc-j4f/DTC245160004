@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HRM - Dashboard</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2.5">
 </head>
 <body>
 <header class="topbar">
@@ -12,7 +12,9 @@
     <nav>
         <a href="dashboard.html" class="active">Dashboard</a>
         <a href="employees.html">Nhân viên</a>
+        <a href="timesheet.html">Bảng chấm công</a>
         <a href="departments.html">Phòng ban</a>
+        <a href="shifts.html">Ca làm việc</a>
         <a href="attendance.html">Chấm công</a>
     </nav>
     <div class="user">
@@ -22,59 +24,107 @@
 </header>
 
 <main class="container">
-    <h1>Tổng quan hôm nay</h1>
-    <p class="muted" id="todayLabel">...</p>
+    <div class="page-header" style="margin-bottom: 16px;">
+        <div>
+            <h1 style="margin: 0 0 4px 0;">Tổng quan & Thống kê chấm công</h1>
+            <p class="muted" id="todayLabel" style="margin: 0;">Đang tải...</p>
+        </div>
+    </div>
 
+    <!-- Bộ lọc theo tiêu chí -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <h3 style="margin: 0; font-size: 1.05em; color: #1f2937;">Bộ lọc thống kê & chấm công</h3>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-sm" id="btnPresetToday">Hôm nay</button>
+                <button type="button" class="btn btn-sm" id="btnPreset7Days">7 ngày qua</button>
+                <button type="button" class="btn btn-sm" id="btnPresetMonth">Tháng này</button>
+            </div>
+        </div>
+        <div class="filter-bar" style="margin-bottom: 0; align-items: flex-end;">
+            <label style="display: flex; flex-direction: column; font-size: 0.85em; color: #4b5563;">Từ ngày
+                <input type="date" id="dashFromDate">
+            </label>
+            <label style="display: flex; flex-direction: column; font-size: 0.85em; color: #4b5563;">Đến ngày
+                <input type="date" id="dashToDate">
+            </label>
+            <label style="display: flex; flex-direction: column; font-size: 0.85em; color: #4b5563;">Phòng ban
+                <select id="dashDeptSelect"><option value="">-- Tất cả phòng ban --</option></select>
+            </label>
+            <label style="display: flex; flex-direction: column; font-size: 0.85em; color: #4b5563;">Trạng thái
+                <select id="dashStatusSelect">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="on_time">Đúng giờ (on_time)</option>
+                    <option value="late">Đi muộn (late)</option>
+                    <option value="early_leave">Về sớm (early_leave)</option>
+                    <option value="absent">Vắng mặt (absent)</option>
+                </select>
+            </label>
+            <label style="display: flex; flex-direction: column; font-size: 0.85em; color: #4b5563; flex: 1; min-width: 160px;">Tìm nhân viên
+                <input type="text" id="dashSearchInput" placeholder="Mã hoặc họ tên NV...">
+            </label>
+            <div style="display: flex; gap: 6px;">
+                <button id="btnApplyFilter" class="btn btn-primary">Lọc</button>
+                <button id="btnResetFilter" class="btn">Đặt lại</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thống kê tổng quan (Bấm vào thẻ để lọc danh sách tương ứng bên dưới) -->
     <div class="grid grid-stats">
-        <div class="card stat">
-            <div class="stat-label">Nhân viên active</div>
+        <div class="card stat stat-clickable" id="cardStatActive" data-status="" title="Bấm để xem tất cả nhân viên / chấm công">
+            <div class="stat-label">Nhân viên (Active)</div>
             <div class="stat-value" id="statActive">-</div>
         </div>
-        <div class="card stat stat-green">
-            <div class="stat-label">Đúng giờ hôm nay</div>
+        <div class="card stat stat-green stat-clickable" id="cardStatOnTime" data-status="on_time" title="Bấm để lọc danh sách đúng giờ">
+            <div class="stat-label">Đúng giờ</div>
             <div class="stat-value" id="statOnTime">-</div>
         </div>
-        <div class="card stat stat-amber">
-            <div class="stat-label">Đi muộn hôm nay</div>
+        <div class="card stat stat-amber stat-clickable" id="cardStatLate" data-status="late" title="Bấm để lọc danh sách đi muộn">
+            <div class="stat-label">Đi muộn</div>
             <div class="stat-value" id="statLate">-</div>
         </div>
-        <div class="card stat stat-red">
-            <div class="stat-label">Vắng hôm nay</div>
+        <div class="card stat stat-amber stat-clickable" id="cardStatEarlyLeave" data-status="early_leave" title="Bấm để lọc danh sách về sớm">
+            <div class="stat-label">Về sớm</div>
+            <div class="stat-value" id="statEarlyLeave">-</div>
+        </div>
+        <div class="card stat stat-red stat-clickable" id="cardStatAbsent" data-status="absent" title="Bấm để lọc danh sách vắng mặt">
+            <div class="stat-label">Vắng mặt</div>
             <div class="stat-value" id="statAbsent">-</div>
         </div>
     </div>
 
-    <div class="grid grid-2">
-        <div class="card">
-            <h2>Xu hướng 7 ngày gần nhất</h2>
-            <table class="table" id="trendTable">
+    <!-- Danh sách chi tiết chấm công theo bộ lọc -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div>
+                <h2 id="recentTableTitle" style="margin: 0; font-size: 1.2em;">Chi tiết hoạt động chấm công</h2>
+                <div class="muted" style="font-size: 0.85em;" id="selectedDateSub">Danh sách chấm công theo điều kiện lọc</div>
+            </div>
+            <span class="badge badge-active" id="recentTableCount">0 bản ghi</span>
+        </div>
+        <div style="overflow-x: auto;">
+            <table class="table" id="recentTable">
                 <thead>
-                    <tr><th>Ngày</th><th>Đúng giờ</th><th>Muộn</th><th>Về sớm</th><th>Vắng</th></tr>
+                    <tr>
+                        <th>Ngày</th>
+                        <th>Mã NV</th>
+                        <th>Họ tên</th>
+                        <th>Phòng ban</th>
+                        <th>Ca làm việc</th>
+                        <th>Giờ vào</th>
+                        <th>Giờ ra</th>
+                        <th>Trạng thái</th>
+                        <th>Độ tin cậy</th>
+                    </tr>
                 </thead>
                 <tbody></tbody>
             </table>
         </div>
-        <div class="card">
-            <h2>Top 5 đi muộn trong tháng</h2>
-            <table class="table" id="topLateTable">
-                <thead><tr><th>Mã NV</th><th>Họ tên</th><th>Số lần muộn</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card">
-        <h2>Hoạt động trong 1 giờ qua</h2>
-        <table class="table" id="recentTable">
-            <thead>
-                <tr><th>Thời gian</th><th>Nhân viên</th><th>Loại</th><th>Trạng thái</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
     </div>
 </main>
 
-<script src="js/api.js"></script>
-<script src="js/dashboard.js"></script>
+<script src="js/api.js?v=2.2"></script>
+<script src="js/dashboard.js?v=2.2"></script>
 </body>
 </html>

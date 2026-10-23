@@ -18,7 +18,7 @@ const loginValidation = [
 const registerValidation = [
     body('username').isString().trim().isLength({ min: 3, max: 64 }),
     body('password').isString().isLength({ min: 8, max: 128 }),
-    body('role').isIn(['admin', 'hr', 'employee']),
+    body('role').isIn(['admin', 'hr', 'employee', 'kiosk']),
     body('employee_id').optional().isInt(),
 ];
 

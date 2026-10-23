@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HRM - Bảng chấm công tháng</title>
+<link rel="stylesheet" href="css/style.css?v=2.8">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand-sm">HRM</div>
+    <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="employees.html">Nhân viên</a>
+        <a href="timesheet.html" class="active">Bảng chấm công</a>
+        <a href="departments.html">Phòng ban</a>
+        <a href="shifts.html">Ca làm việc</a>
+        <a href="attendance.html">Chấm công</a>
+    </nav>
+    <div class="user">
+        <span id="meName">...</span>
+        <button id="btnLogout" class="btn btn-ghost">Đăng xuất</button>
+    </div>
+</header>
+
+<main class="container">
+    <div class="page-header" style="margin-bottom: 16px;">
+        <div>
+            <h1 style="margin: 0 0 4px 0;">Bảng chấm công tổng hợp theo tháng</h1>
+            <p class="muted" style="margin: 0;" id="timesheetSubtitle">
+                Thống kê chi tiết số ngày đi làm, nghỉ phép, vắng mặt, đi muộn, về sớm của từng nhân viên
+            </p>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <button id="btnPrintTimesheet" class="btn">In bảng công</button>
+        </div>
+    </div>
+    <!-- Bộ lọc theo tháng và phòng ban -->
+    <div class="card">
+        <div class="filter-bar" style="align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-weight:600;font-size:0.9em;color:#374151;">Chọn tháng:</label>
+                <input type="month" id="filterMonth" style="width:160px;padding:6px 10px;font-weight:600;">
+            </div>
+            <select id="filterDept" style="min-width:180px;">
+                <option value="">-- Tất cả phòng ban --</option>
+            </select>
+            <input id="filterSearch" placeholder="Tìm theo mã NV hoặc họ tên nhân viên..." style="flex:1;min-width:220px;">
+            <button id="btnReload" class="btn btn-primary">Làm mới</button>
+        </div>
+
+        <!-- Bảng chấm công tổng hợp -->
+        <div style="overflow-x:auto;">
+            <table class="table" id="timesheetTable">
+                <thead>
+                    <tr>
+                        <th style="width:50px;text-align:center;">STT</th>
+                        <th>Mã NV</th>
+                        <th>Họ và tên</th>
+                        <th>Phòng ban</th>
+                        <th>Ca làm việc</th>
+                        <th style="text-align:center;">Đi làm</th>
+                        <th style="text-align:center;">Nghỉ phép</th>
+                        <th style="text-align:center;">Vắng mặt</th>
+                        <th style="text-align:center;">Đi muộn</th>
+                        <th style="text-align:center;">Về sớm</th>
+                        <th style="text-align:center;">Chuyên cần</th>
+                    </tr>
+                </thead>
+                <tbody id="timesheetBody">
+                    <tr><td colspan="11" class="muted" style="text-align:center;padding:24px;">Đang tải dữ liệu chấm công...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Modal xem chi tiết công tháng của từng nhân viên -->
+<div id="detailModal" class="modal" style="display:none;" aria-hidden="true">
+    <div class="modal-card modal-xl">
+        <div class="modal-header">
+            <div>
+                <h2 id="modalEmpTitle" style="margin:0 0 4px 0;">Chi tiết chấm công tháng</h2>
+                <div id="modalEmpSubtitle" class="muted" style="font-size:0.9em;">...</div>
+            </div>
+            <button type="button" class="btn-close" id="btnCloseDetailModal" title="Đóng">&times;</button>
+        </div>
+
+        <!-- Employee Quick Stats Banner -->
+        <div class="emp-summary-banner" id="modalEmpBanner">
+            <div class="emp-meta-item">Mã NV: <strong id="mBannerCode">-</strong></div>
+            <div class="emp-meta-item">Họ tên: <strong id="mBannerName">-</strong></div>
+            <div class="emp-meta-item">Phòng ban: <strong id="mBannerDept">-</strong></div>
+            <div class="emp-meta-item">Ca làm việc: <strong id="mBannerShift">-</strong></div>
+        </div>
+
+        <!-- Thống kê cá nhân dạng thẻ giống dashboard, không icon -->
+        <div class="grid grid-stats" style="margin-bottom: 16px;">
+            <div class="card stat stat-green" style="margin-bottom:0;padding:12px;">
+                <div class="stat-label">Đi làm</div>
+                <div class="stat-value" style="font-size:1.6em;" id="mStatWork">0</div>
+            </div>
+            <div class="card stat stat-blue" style="margin-bottom:0;padding:12px;">
+                <div class="stat-label">Nghỉ phép</div>
+                <div class="stat-value" style="font-size:1.6em;" id="mStatLeave">0</div>
+            </div>
+            <div class="card stat stat-amber" style="margin-bottom:0;padding:12px;">
+                <div class="stat-label">Đi muộn</div>
+                <div class="stat-value" style="font-size:1.6em;" id="mStatLate">0</div>
+            </div>
+            <div class="card stat stat-amber" style="margin-bottom:0;padding:12px;">
+                <div class="stat-label">Về sớm</div>
+                <div class="stat-value" style="font-size:1.6em;" id="mStatEarly">0</div>
+            </div>
+            <div class="card stat stat-red" style="margin-bottom:0;padding:12px;">
+                <div class="stat-label">Vắng mặt</div>
+                <div class="stat-value" style="font-size:1.6em;" id="mStatAbsent">0</div>
+            </div>
+        </div>
+
+        <!-- Detailed Daily Calendar Table -->
+        <div style="max-height: 420px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px;">
+            <table class="table" id="dailyTable" style="margin: 0;">
+                <thead style="position: sticky; top: 0; z-index: 10;">
+                    <tr>
+                        <th style="width: 100px;">Ngày</th>
+                        <th style="width: 100px;">Thứ</th>
+                        <th style="width: 100px;">Giờ vào</th>
+                        <th style="width: 100px;">Giờ ra</th>
+                        <th>Trạng thái chấm công</th>
+                        <th>Ghi chú</th>
+                    </tr>
+                </thead>
+                <tbody id="dailyBody">
+                    <tr><td colspan="6" class="muted" style="text-align:center;padding:16px;">Đang tải chi tiết ngày công...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 16px;">
+            <button type="button" class="btn" id="btnPrintEmpDetail">In chi tiết</button>
+            <button type="button" class="btn btn-primary" id="btnCloseDetailModalBottom">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js?v=2.8"></script>
+<script src="js/timesheet.js?v=2.8"></script>
+</body>
+</html>

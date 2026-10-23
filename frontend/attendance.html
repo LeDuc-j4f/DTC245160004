@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HRM - Chấm công</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2.5">
 </head>
 <body>
 <header class="topbar">
@@ -12,7 +12,9 @@
     <nav>
         <a href="dashboard.html">Dashboard</a>
         <a href="employees.html">Nhân viên</a>
+        <a href="timesheet.html">Bảng chấm công</a>
         <a href="departments.html">Phòng ban</a>
+        <a href="shifts.html">Ca làm việc</a>
         <a href="attendance.html" class="active">Chấm công</a>
     </nav>
     <div class="user">
@@ -28,11 +30,11 @@
         <div class="card">
             <h2>Camera</h2>
             <video id="video" autoplay playsinline width="100%" style="background:#000;border-radius:6px"></video>
-            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <button id="btnStartCam" class="btn btn-primary">Bật camera</button>
-                <button id="btnStopCam"  class="btn">Tắt camera</button>
-                <button id="btnCapture"  class="btn btn-primary" disabled>Chấm công (chụp & gửi)</button>
-                <label class="btn" style="cursor:pointer">
+                <button id="btnStopCam"  class="btn" disabled>Tắt camera</button>
+                <button id="btnCapture"  class="btn btn-primary" disabled style="font-weight:600">Chấm công</button>
+                <label class="btn" style="cursor:pointer;margin:0;display:inline-flex;align-items:center" title="Tải ảnh khuôn mặt từ thiết bị">
                     Tải ảnh lên
                     <input id="fileInput" type="file" accept="image/*" style="display:none">
                 </label>
@@ -47,17 +49,27 @@
     </div>
 
     <div class="card">
-        <h2>Lịch sử gần đây của bạn</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h2 id="attHistoryTitle" style="margin: 0;">Lịch sử chấm công gần đây</h2>
+            <button id="btnReloadAtt" class="btn btn-sm">Tải lại</button>
+        </div>
         <table class="table" id="myAttTable">
             <thead>
-                <tr><th>Ngày</th><th>Vào</th><th>Ra</th><th>Trạng thái</th><th>Độ tin cậy</th></tr>
+                <tr>
+                    <th>Ngày</th>
+                    <th>Nhân viên</th>
+                    <th>Giờ vào</th>
+                    <th>Giờ ra</th>
+                    <th>Trạng thái</th>
+                    <th>Độ tin cậy</th>
+                </tr>
             </thead>
             <tbody></tbody>
         </table>
     </div>
 </main>
 
-<script src="js/api.js"></script>
-<script src="js/attendance.js"></script>
+<script src="js/api.js?v=2.2"></script>
+<script src="js/attendance.js?v=2.3"></script>
 </body>
 </html>

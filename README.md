@@ -55,7 +55,7 @@ Hệ thống quản lý nhân viên, phòng ban và chấm công tự động b�
 
 ### Bước 1 — Clone & chuẩn bị môi trường
 ```bash
-git clone <repo-cua-ban> HRM
+git clone https://github.com/LeDuc-j4f/DTC245160004.git HRM
 cd HRM
 cp .env.example .env
 # (tuỳ chọn) sửa password trong .env
@@ -78,24 +78,51 @@ docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
 ### Bước 4 — Truy cập
 | URL | Mô tả |
 |---|---|
-| **https://localhost** | Reverse proxy (HTTPS self-signed) |
-| http://localhost:8080 | Frontend (HTTP) |
-| https://localhost/pgadmin/ | pgAdmin (qua proxy) |
-| http://localhost:9090 | Prometheus |
-| http://localhost:3001 | Grafana |
-| http://localhost:3100 | Loki (API) |
+| **https://localhost** | Reverse proxy chính (HTTPS self-signed, đầy đủ security headers) |
+| http://localhost:8080 | Frontend trực tiếp (HTTP) |
+| https://localhost/timesheet.html | **Bảng chấm công tổng hợp theo tháng** (Thống kê công, vắng, muộn, sớm, chuyên cần) |
+| https://localhost/pgadmin/ | Quản trị CSDL pgAdmin 4 (qua reverse proxy) |
+| http://localhost:9090 | Prometheus Dashboard |
+| http://localhost:3001 | Grafana Monitoring Dashboard |
+| http://localhost:3100 | Loki Log Aggregator (API) |
 
-### Tài khoản mặc định
+### Danh sách tài khoản hệ thống
 
-| Service | Username | Password |
-|---|---|---|
-| HRM | `admin` | `Admin@HRM2024!` |
-| HRM | `hr01` | `Hr@HRM2024!` |
-| HRM | `nv001` | `Nv@HRM2024!` |
-| pgAdmin | `admin@hrm.local` | `ChangeMe_PgAdmin_2024!_aB3s` |
-| Grafana | `admin` | `ChangeMe_Grafana_2024!_gR5t` |
+| Phân hệ / Vai trò | Username | Password | Quyền hạn / Mục đích |
+|---|---|---|---|
+| **HRM - Quản trị viên** | `admin` | `Admin@HRM2024!` | Toàn quyền hệ thống, quản lý nhân viên, phòng ban, ca làm việc, xem thống kê |
+| **HRM - Nhân sự (HR)** | `hr01` | `Hr@HRM2024!` | Quản lý hồ sơ nhân viên, phòng ban, phân ca làm việc, điểm danh |
+| **HRM - Nhân viên** | `nv001` | `Nv@HRM2024!` | Xem thông tin cá nhân và lịch sử chấm công của chính mình |
+| **HRM - Máy Chấm Công (Kiosk)** | `chamcong` *(hoặc `kiosk`)* | `Chamcong@2024!` *(hoặc `Kiosk@2024!`)* | **Chuyên dụng cho máy chấm công đặt tại cửa ra vào**. Tự động vào trang chấm công, chặn toàn bộ trang khác |
+| **pgAdmin 4** | `admin@hrm.local` | `ChangeMe_PgAdmin_2024!_aB3s` | Quản trị cơ sở dữ liệu PostgreSQL |
+| **Grafana** | `admin` | `ChangeMe_Grafana_2024!_gR5t` | Xem dashboard giám sát hệ thống & truy vấn LogQL |
 
-> **Bắt buộc đổi mật khẩu trước khi triển khai thật.**
+> **Bắt buộc đổi mật khẩu trước khi triển khai môi trường sản xuất thực tế.**
+
+## ✨ Các tính năng nổi bật của hệ thống
+
+1. **Quản lý Nhân sự & Phòng ban**: Thêm mới, chỉnh sửa, xóa mềm (soft delete), lọc theo trạng thái và phòng ban.
+2. **Quản lý Ca làm việc (Shifts)**:
+   - Hỗ trợ ca chuẩn: Ca hành chính (08:30 - 17:30), Ca sáng (08:00 - 12:00), Ca chiều (13:00 - 17:00), Ca đêm (22:00 - 06:00).
+   - Hỗ trợ thêm ca tùy chỉnh và phân ca hàng loạt cho nhiều nhân viên cùng lúc.
+3. **Quản lý Nghỉ phép (Leave Management)**:
+   - Đăng ký nghỉ phép theo khoảng thời gian (`Từ ngày` - `Đến ngày`).
+   - Tự động chuyển nhân viên sang trạng thái nghỉ phép.
+   - **Tự động kích hoạt lại**: Hệ thống chạy background job và cron hàng ngày để tự động đưa nhân viên trở lại trạng thái "Đang làm việc" ngay khi hết hạn nghỉ phép.
+4. **Chế độ Kiosk Cửa ra vào (Dedicated Kiosk)**:
+   - Thiết kế chuyên biệt cho máy tính bảng / màn hình cảm ứng gắn ở cửa ra vào công ty.
+   - Khóa thanh điều hướng, chỉ hiển thị giao diện chấm công và lịch sử quẹt thẻ gần đây.
+   - Tự động chặn truy cập vào mọi đường dẫn quản lý nhạy cảm.
+5. **Dashboard Thống kê Thời gian thực**:
+   - Thống kê tỷ lệ Đúng giờ, Đi muộn, Về sớm, Vắng mặt.
+   - Nhấp vào từng thẻ số liệu để hiển thị ngay danh sách nhân viên tương ứng.
+   - Đồng bộ thời gian thực và bộ lọc đa tiêu chí (ngày tháng, phòng ban, tìm kiếm).
+6. **Bảng chấm công tổng hợp theo tháng (Monthly Timesheet)**:
+   - Module chuyên biệt (`timesheet.html`) truy cập trực tiếp từ thanh menu topbar.
+   - Thống kê chi tiết toàn bộ nhân sự trong tháng: Đi làm (`work_days`), Nghỉ phép (`leave_days`), Vắng mặt (`absent_days`), Đi muộn (`late_days`), Về sớm (`early_leave_days`).
+   - Cột **Chuyên cần** định dạng phân số tinh gọn `work_days/total_standard_days` (ví dụ: `1/22 ngày công chuẩn`).
+   - Bộ lọc linh hoạt theo tháng (`YYYY-MM`), lọc theo phòng ban và tìm kiếm theo tên hoặc mã nhân viên.
+   - Tích hợp tính năng **In bảng công** (`window.print()`) định dạng trang in chuẩn mực phục vụ lưu trữ hành chính hoặc quyết toán công nợ/lương.
 
 ## 🧠 Chấm công tự động bằng khuôn mặt
 
@@ -115,6 +142,14 @@ Mặc định: `FACE_MATCH_THRESHOLD=0.45` (cosine distance). Có thể chỉnh 
 2. **Tan ca**: lần khớp thứ 2 trong ngày → ghi `attendance.check_out`
    - Status: `on_time` nếu ≥ 17:25, ngược lại `early_leave`
 3. **Vắng**: cron lúc 23:00 tự ghi `absent` cho nhân viên không check-in.
+4. **Thống kê chuyên cần tháng thời gian thực**:
+   Ngay sau khi nhân viên điểm danh (vào ca, tan ca hoặc quét lại), hệ thống lập tức tính toán và phản hồi bảng thống kê chuyên cần trong tháng của nhân viên:
+   - **Số buổi đi làm**: tổng số ngày có mặt làm việc (`work_days`)
+   - **Số buổi vắng**: số ngày vắng mặt (`absent_days`)
+   - **Số buổi đến muộn**: số lần check-in sau giờ ca (`late_days`)
+   - **Số buổi về sớm**: số lần check-out trước giờ ca (`early_leave_days`)
+   Đồng thời, trang `attendance.html` tích hợp module **"Tổng hợp công theo tháng"** (`GET /api/attendance/monthly-stats`) hỗ trợ chọn tháng, lọc theo nhân viên và xem chi tiết từng ngày.
+
 
 ### Đăng ký khuôn mặt cho nhân viên mẫu
 
@@ -202,11 +237,11 @@ HRM/
 
 ## 📋 Kế hoạch 3 commit (yêu cầu của đề bài)
 
-| # | Commit message | Nội dung |
+| # | Tên Commit (đơn giản, dễ hiểu) | Nội dung tương ứng trong đề bài |
 |---|---|---|
-| 1 | `feat: initial HRM stack + Nginx reverse proxy` | Toàn bộ source + docker-compose + Nginx HTTPS. |
-| 2 | `feat: monitoring (Prometheus + Grafana) + hardening` | `docker-compose.monitoring.yml`, exporters, security headers, non-root. |
-| 3 | `feat: central logging (Loki + Promtail) + LogQL` | Loki config, Promtail scrape, 3 query LogQL mẫu. |
+| **1** | `Commit 1: Khoi tao ung dung HRM, co so du lieu PostgreSQL va Nginx Reverse Proxy HTTPS` | Toàn bộ mã nguồn ứng dụng, CSDL PostgreSQL + pgAdmin, Nginx reverse proxy HTTPS. |
+| **2** | `Commit 2: Tich hop he thong giam sat Prometheus va Grafana` | Cấu hình Prometheus, exporters thu thập metrics, dashboard Grafana giám sát container và CSDL. |
+| **3** | `Commit 3: Tich hop ghi log tap trung Loki, Promtail va bao mat he thong` | Cấu hình Loki, Promtail scrape log, các truy vấn LogQL mẫu và hardening bảo mật hệ thống. |
 
 ## 🛠️ Vận hành
 
@@ -226,9 +261,12 @@ bash scripts/backup_db.sh
 docker compose down
 ```
 
-## 📄 Báo cáo
+## 📄 Tài liệu báo cáo & Triển khai
 
-Xem file `BaoCao.md` để có báo cáo tổng hợp ≥ 10 trang theo yêu cầu môn học.
+- **Báo cáo học phần chính thức Word (MSSV DTC245160004)**: Lưu tại `TrienKhai/DTC245160004.docx` (đầy đủ bìa chuẩn, mục lục, bảng biểu, kiến trúc đa container, cấu hình Nginx, Prometheus, Grafana, Loki, hardening và bảng kiểm thử chi tiết).
+- **Mã nguồn LaTeX & Bản in PDF**: Lưu tại `TrienKhai/latex/main.tex` và `TrienKhai/latex/main.pdf`.
+- **Báo cáo tổng hợp môn học Markdown**: Lưu tại `TrienKhai/BaoCao.md`.
+- **Hướng dẫn chi tiết triển khai trên máy ảo Ubuntu Server**: Lưu tại `TrienKhai/Huong_Dan_Trien_Khai_Ubuntu_Server.md`.
 
 ## 📜 License
 

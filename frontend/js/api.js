@@ -46,9 +46,34 @@ const API = (() => {
             return r.data;
         },
         logout: () => { clearToken(); clearUser(); location.href = 'login.html'; },
-        requireAuth: () => {
+        requireAuth: (allowedRoles) => {
             if (!getToken()) { location.href = 'login.html'; return false; }
+            const u = getUser();
+            if (u && u.role === 'kiosk') {
+                const path = location.pathname.toLowerCase();
+                if (!path.endsWith('attendance.html') && !path.endsWith('/attendance') && !path.endsWith('/attendance/')) {
+                    location.href = 'attendance.html';
+                    return false;
+                }
+            }
+            if (allowedRoles && u && !allowedRoles.includes(u.role)) {
+                if (u.role === 'kiosk' || u.role === 'employee') {
+                    location.href = 'attendance.html';
+                } else {
+                    location.href = 'dashboard.html';
+                }
+                return false;
+            }
             return true;
+        },
+        escapeHtml: (str) => {
+            if (!str && str !== 0) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         },
         me: () => request('/auth/me'),
     };

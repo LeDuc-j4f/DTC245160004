@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HRM - Nhân viên</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2.5">
 </head>
 <body>
 <header class="topbar">
@@ -12,7 +12,9 @@
     <nav>
         <a href="dashboard.html">Dashboard</a>
         <a href="employees.html" class="active">Nhân viên</a>
+        <a href="timesheet.html">Bảng chấm công</a>
         <a href="departments.html">Phòng ban</a>
+        <a href="shifts.html">Ca làm việc</a>
         <a href="attendance.html">Chấm công</a>
     </nav>
     <div class="user">
@@ -42,7 +44,7 @@
             <thead>
                 <tr>
                     <th>Mã NV</th><th>Họ tên</th><th>Phòng ban</th><th>Chức vụ</th>
-                    <th>Trạng thái</th><th>Khuôn mặt</th><th></th>
+                    <th>Ca làm việc</th><th>Trạng thái</th><th>Khuôn mặt</th><th>Hành động</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -51,22 +53,59 @@
 </main>
 
 <!-- Modal thêm/sửa nhân viên -->
-<div id="empModal" class="modal" hidden>
+<div id="empModal" class="modal" style="display: none !important;" aria-hidden="true">
     <div class="modal-card">
-        <h2 id="empModalTitle">Thêm nhân viên</h2>
+        <div class="modal-header">
+            <h2 id="empModalTitle">Thêm nhân viên</h2>
+            <button type="button" class="btn-close" id="btnCloseEmpModal" title="Đóng">&times;</button>
+        </div>
         <form id="empForm" enctype="multipart/form-data">
-            <input type="hidden" name="id">
-            <label>Mã NV *<input name="employee_code" required></label>
-            <label>Họ tên *<input name="full_name" required></label>
-            <label>Email <input name="email" type="email"></label>
-            <label>Điện thoại <input name="phone"></label>
+            <input type="hidden" name="id" id="empIdInput">
+            <label>Mã NV *<input name="employee_code" id="empCodeInput" required></label>
+            <label>Họ tên *<input name="full_name" id="empNameInput" required></label>
+            <label>Email <input name="email" id="empEmailInput" type="email"></label>
+            <label>Điện thoại <input name="phone" id="empPhoneInput"></label>
             <label>Phòng ban
                 <select name="department_id" id="empDeptSelect"></select>
             </label>
-            <label>Chức vụ <input name="position"></label>
-            <label>Ngày vào làm <input name="hire_date" type="date"></label>
+            <label>Chức vụ <input name="position" id="empPositionInput"></label>
+            <label>Ngày vào làm <input name="hire_date" id="empHireDateInput" type="date"></label>
+            
+            <div style="border: 1px solid #e5e7eb; padding: 14px; border-radius: 8px; margin: 14px 0; background: #f9fafb;">
+                <label style="font-weight: 700; color: #1f2937; margin: 0 0 8px 0; font-size: 0.95em;">Ca làm việc</label>
+                <label>Chọn ca làm việc
+                    <select id="empShiftSelect" name="shift_name">
+                        <option value="Ca ngày (08:30 - 17:30)">Ca ngày (08:30 - 17:30)</option>
+                        <option value="Ca sáng (06:00 - 14:00)">Ca sáng (06:00 - 14:00)</option>
+                        <option value="Ca chiều (14:00 - 22:00)">Ca chiều (14:00 - 22:00)</option>
+                        <option value="Ca đêm (20:00 - 05:00)">Ca đêm (20:00 - 05:00)</option>
+                    </select>
+                </label>
+                <input name="work_start" id="empWorkStart" type="hidden" value="08:30">
+                <input name="work_end" id="empWorkEnd" type="hidden" value="17:30">
+            </div>
+
+            <div id="empStatusGroup" style="display: none;">
+                <label>Trạng thái
+                    <select name="status" id="empStatusSelect">
+                        <option value="active">Đang làm việc</option>
+                        <option value="on_leave">Nghỉ phép</option>
+                        <option value="terminated">Đã nghỉ việc</option>
+                    </select>
+                </label>
+                <div id="empLeaveDatesGroup" style="display: none; border: 1px solid #fed7aa; background: #fffbeb; padding: 10px; border-radius: 6px; margin-top: 8px;">
+                    <label style="margin-top: 0;">Nghỉ từ ngày
+                        <input name="leave_start" id="empLeaveStartInput" type="date">
+                    </label>
+                    <label>Đến hết ngày
+                        <input name="leave_end" id="empLeaveEndInput" type="date">
+                    </label>
+                    <small class="muted" style="color: #92400e;">Hết ngày nghỉ phép sẽ tự động chuyển về Đang làm việc.</small>
+                </div>
+            </div>
+
             <label>Ảnh khuôn mặt (để đăng ký nhận diện)
-                <input name="file" type="file" accept="image/*">
+                <input name="file" id="empFileInput" type="file" accept="image/*">
             </label>
             <div class="modal-actions">
                 <button type="button" id="btnCancel" class="btn">Hủy</button>
@@ -77,7 +116,35 @@
     </div>
 </div>
 
-<script src="js/api.js"></script>
-<script src="js/employees.js"></script>
+<!-- Modal chọn ngày nghỉ phép -->
+<div class="modal" id="leaveModal" hidden>
+    <div class="modal-card" style="width: 440px;">
+        <div class="modal-header">
+            <h2 id="leaveModalTitle">Đăng ký thời gian nghỉ phép</h2>
+            <button type="button" class="btn-close" id="btnCloseLeaveModal">&times;</button>
+        </div>
+        <form id="leaveForm">
+            <input type="hidden" id="leaveEmpId">
+            <p id="leaveEmpName" style="font-weight: 700; color: #1e3a8a; font-size: 1.05em; margin: 0 0 12px 0;"></p>
+            <label>Nghỉ phép từ ngày *
+                <input type="date" id="leaveStartDate" required>
+            </label>
+            <label>Đến hết ngày *
+                <input type="date" id="leaveEndDate" required>
+            </label>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 12px;margin:12px 0;font-size:0.88em;color:#1e40af;line-height:1.4;">
+                💡 <strong>Tự động kích hoạt:</strong> Sau khi hết ngày nghỉ phép đã chọn, hệ thống sẽ <strong>tự động chuyển nhân viên về danh sách Đang làm việc</strong>.
+            </div>
+            <div class="modal-actions" style="margin-top: 16px;">
+                <button type="button" id="btnCancelLeave" class="btn">Hủy</button>
+                <button type="submit" class="btn" style="background:#d97706;border-color:#d97706;color:#fff;font-weight:600;">Xác nhận nghỉ phép</button>
+            </div>
+            <p id="leaveFormError" class="error" hidden></p>
+        </form>
+    </div>
+</div>
+
+<script src="js/api.js?v=2.6"></script>
+<script src="js/employees.js?v=2.6"></script>
 </body>
 </html>

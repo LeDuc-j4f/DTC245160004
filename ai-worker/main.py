@@ -83,7 +83,7 @@ async def health():
 
 @app.post("/extract_faces")
 async def extract_faces(files: List[UploadFile] = File(...)):
-    if yolo_model is None or app_face is None:
+    if app_face is None:
         raise HTTPException(status_code=500, detail="AI models not loaded")
 
     results_data = []
@@ -96,34 +96,45 @@ async def extract_faces(files: List[UploadFile] = File(...)):
             if img is None:
                 continue
 
-            # YOLO for face detection boxes
-            results = yolo_model(img)[0]
-
             # InsightFace on the whole image (RetinaFace inside buffalo_l)
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             insight_faces = app_face.get(img_rgb)
 
-            for box in results.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                w = x2 - x1
-                h = y2 - y1
-                yolo_cx = (x1 + x2) / 2
-                yolo_cy = (y1 + y2) / 2
+            if yolo_model is not None:
+                # YOLO for face detection boxes
+                results = yolo_model(img)[0]
 
-                # Match YOLO box to nearest InsightFace by center containment
-                best = None
+                for box in results.boxes:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    w = x2 - x1
+                    h = y2 - y1
+                    yolo_cx = (x1 + x2) / 2
+                    yolo_cy = (y1 + y2) / 2
+
+                    # Match YOLO box to nearest InsightFace by center containment
+                    best = None
+                    for face in insight_faces:
+                        fx1, fy1, fx2, fy2 = face.bbox
+                        if fx1 <= yolo_cx <= fx2 and fy1 <= yolo_cy <= fy2:
+                            best = face
+                            break
+                    if best is None and len(insight_faces) > 0:
+                        best = insight_faces[0]
+
+                    if best is not None:
+                        embedding = best.embedding.tolist()
+                        results_data.append({
+                            "bounding_box": {"x": int(x1), "y": int(y1), "w": int(w), "h": int(h)},
+                            "embedding": embedding,
+                        })
+            else:
                 for face in insight_faces:
                     fx1, fy1, fx2, fy2 = face.bbox
-                    if fx1 <= yolo_cx <= fx2 and fy1 <= yolo_cy <= fy2:
-                        best = face
-                        break
-                if best is None and len(insight_faces) > 0:
-                    best = insight_faces[0]
-
-                if best is not None:
-                    embedding = best.embedding.tolist()
+                    w = int(fx2 - fx1)
+                    h = int(fy2 - fy1)
+                    embedding = face.embedding.tolist()
                     results_data.append({
-                        "bounding_box": {"x": int(x1), "y": int(y1), "w": int(w), "h": int(h)},
+                        "bounding_box": {"x": int(fx1), "y": int(fy1), "w": w, "h": h},
                         "embedding": embedding,
                     })
         except Exception as e:
